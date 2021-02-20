@@ -3,3 +3,5 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 BiocManager::install("hgu133plus2.db")
 library(BiocManager)
+
+library(hgu133plus2.db)
