@@ -5,8 +5,8 @@ head(ttest_results)
 ttest_results$lfch<-logratio2foldchange(ttest_results$p_adju, base=2)
 str(ttest_results)
 
-ttest_results_top<-ttest_results%>%arrange(p_adju)
-str(ttest_results_top)
+ttest_results_T<-ttest_results %>% top_n(10, desc(p_adju))
+str(ttest_results_T)
 
 
 
