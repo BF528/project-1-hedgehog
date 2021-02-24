@@ -1,5 +1,9 @@
 library(cluster)
 library(gplots)
+library(ggdendro)
+library(ggplot2)
+library(grid)
+library(gridExtra)
 library(tidyverse)
 
 setwd("/projectnb/bf528/users/hedgehog/project_1/noise_filtering/")
@@ -16,10 +20,59 @@ names(filtered) <- apply(data.frame(names(filtered)), 1,
 # find distance between points and then cut tree
 d <- dist(t(filtered[,-1]), method = "euclidean")
 fit <- hclust(d, method = "ward.D")
+# check agglomerative coeffecient, higher is better
+agnes_result <- agnes(t(filtered[,-1]), method="average")$ac
+print(paste0("Agnes agg. coefficient: ", agnes_result, ", higher is better."))
 groups <- cutree(fit, k = 2)  # cut tree into 2 clusters
 print(table(groups)) # number of samples in each group
-plot(fit, hang = -1, cex = 0.8, xlab = "Sample GEO Accession")
-rect.hclust(fit, k = 2, border = "red")
+fit <- as.dendrogram(fit)
+
+# put way too much work into plotting:
+upper <- ggdendrogram(fit, theme_dendro = FALSE, cex = 0) + 
+  xlab("Samples") + 
+  ylab("Height") +
+  ggtitle("a)") +
+  annotate("rect", xmin = 0, xmax = 77.5, ymin = 0, ymax = 210, 
+           fill="red", colour="red", alpha=0.1) +
+  # annotate("text", x = 3, y = 250, label = "b)") +
+  annotate("rect", xmin = 77.6, xmax = 134, ymin = 0, ymax = 210, 
+           fill="orange", colour="orange", alpha=0.1) +
+  # annotate("text", x = 80, y = 250, label = "c)") +
+  theme(panel.background = element_blank(),
+        panel.grid.major.y = element_line( size=.1, color="black" ),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+lower_1 <- ggdendrogram(cut(fit, 500)$lower[[1]], theme_dendro = FALSE) + 
+  xlab("Sample name") + 
+  ylab("Height") +
+  ylim(c(0, 210)) +
+  ggtitle("b)") +
+  theme(panel.grid.major.y = element_line(size=.1, color="black", 
+                                          linetype = "dashed"),
+        panel.background = element_rect(fill = alpha("red", 0.1),
+                                        colour = alpha("red", 0.1),
+                                        size = 0.5, linetype = "solid"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+lower_2 <- ggdendrogram(cut(fit, 500)$lower[[2]], theme_dendro = FALSE) + 
+  xlab("Sample name") + 
+  ylab("Height") +
+  ylim(c(0, 210)) +
+  ggtitle("c)") +
+  theme(panel.grid.major.y = element_line(size=.1, color="black", 
+                                          linetype = "dashed"),
+        panel.background = element_rect(fill = alpha("orange", 0.1),
+                                        colour = alpha("orange", 0.1),
+                                        size = 0.5, linetype = "solid"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+grid.arrange(upper, lower_1, lower_2, widths = c(0.33,1.33),
+             layout_matrix = rbind(c(1, 2),
+                                   c(1, 3)))
+
 
 # 5.3 heatmap
 annot <- read.csv("/project/bf528/project_1/doc/proj_metadata.csv")
@@ -34,9 +87,18 @@ for (sample in names(filtered[,-1])) {
   c3_color <- rbind(c3_color, data.frame(geo = sample, type = curr_col))
 }
 
-# heatmap(data.matrix(filtered)[,-1], ColSideColors = c3_color$type, )
-heatmap.2(data.matrix(filtered)[,-1], ColSideColors = c3_color$type, 
-          trace = "none", col = rev(heat.colors(12)))
+heatmap.2(data.matrix(filtered)[,-1], 
+          ColSideColors = c3_color$type, 
+          trace = "none", 
+          margins = c(6,2),
+          col = rev(heat.colors(12)),
+          cexCol = 0.75,
+          xlab = "Sample name", ylab = "Probe set",
+          labRow = "",
+          key.xlab = "Gene expression level",
+          lwid=c(1, 6),
+          lhei=c(1, 4))
+
 
 # 5.4 statistics
 # apply this to every row
