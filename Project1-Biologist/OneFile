@@ -1,0 +1,175 @@
+####Putting complete Biologist piece in one spot. It was a bit all over the 
+#the place. 
+#Mapping PROBEID to GENESYMBOLS (6.1 and 6.4)
+
+#Installs and loads clusterProfiler, part of BiocManager in BioConducter. Built in function for converting file to table. (i.e. read.gmt)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+library(hgu133plus2.db)
+
+raw_data_1<-read.csv("/projectnb/bf528/users/hedgehog/project_1/biologist role/#1 Differential Expression & hgu133plus2.db/hedgehog1_data.csv")
+
+Synced_2GS<- AnnotationDbi::select(hgu133plus2.db, keys = raw_data_1$X, columns = ("SYMBOL"))
+
+Synced_2GS_nodup<-Synced_2GS[!duplicated(Synced_2GS),]
+head(Synced_2GS_nodup)
+
+summary(Synced_2GS_nodup)
+##Reading in GMT files for Gene Sets in  (6.2)
+
+library(GSEABase)
+
+BiocManager::install("hgu133plus2.db")
+library(BiocManager)
+
+#Installs and loads GSEAmining from BioConductor (based on Geneclustering)
+BiocManager::install("GSEAmining")
+library(GSEAmining)
+
+
+#Installs and loads clusterProfiler, part of BiocManager in BioConducter. Built in function for converting file to table. (i.e. read.gmt)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+library(hgu133plus2.db)
+
+KEGG_1 <- getGmt("/usr4/bf528/bcole99/PROJECT 1/c2.cp.kegg.v7.2.symbols.gmt",
+                 collectionType=BroadCollection(category="c3"),
+                 geneIdType=SymbolIdentifier())
+
+
+GO_1 <- getGmt("/usr4/bf528/bcole99/PROJECT 1/c5.go.v7.2.symbols.gmt",
+               collectionType=BroadCollection(category="c3"),
+               geneIdType=SymbolIdentifier())
+
+HALL_1 <- getGmt("/usr4/bf528/bcole99/PROJECT 1/h.all.v7.2.symbols.gmt",
+                 collectionType=BroadCollection(category="c3"),
+                 geneIdType=SymbolIdentifier())
+
+length(G0_1)
+####Checking files for length.  Here we see there are 5245 unique identifiers with the KEGG GeneSetCollection
+#19276 unique identifiers in the GO GeneSetCollection
+#4383 unique identifiers in Hallmark GeneSetCollection
+print(KEGG_1)
+print(GO_1)
+print(HALL_1)
+
+### 6.3 Calculating the top 1000-up / down regulated genes . 
+library(dplyr)
+library(rlang)
+library(purrr)
+library(stringr)
+library(tidyverse)
+library(tidyselect)
+library(base)
+
+ttest_results<-read.csv("/projectnb/bf528/users/hedgehog/project_1/noise_filtering/clustered_ttests.csv")
+summary(ttest_results)
+
+t_symbol<-AnnotationDbi::select(hgu133plus2.db, keys = ttest_results$probeID, columns = ("SYMBOL"),)
+
+t_symbolx<-na.omit(t_symbol)
+write.csv(t_symbol)
+
+ttest_sym <- left_join(ttest_results, t_symbolx, by=c("probeID"="PROBEID"))
+###Alternatively we can  ttest_sym <- left_join(ttest_results, t_symbol, by=c("probeID"="PROBEID")) %>% rename("PROBEID"="SYMBOL") %>%
+#####select(X,PROBEID,everything(),-probeID)
+head(ttest_sym)
+
+
+ttest_results_top<-ttest_sym %>% arrange(p_adju)
+str(ttest_results_top)
+
+ttest_T<-format(ttest_results_top, digits = 3, nsmall= 20, exp(30), scientific = TRUE)
+
+na.omit(ttest_T)
+print(top_hat<-head(ttest_T,10))
+
+ttest_high<-ttest_sym %>% arrange(desc(p_adju))
+ttest_high<-format(ttest_high, digits = 3, nsmall= 20, exp(30), scientific = TRUE)
+
+print(top_shoe<-head(ttest_high,10))
+head(ttest_high)
+na.omit(top_shoe)
+
+knitr::kable(
+  top_hat[],    
+  caption = "Gene Sets by Lowest p-value (adjusted)."
+)
+knitr::kable(
+  top_shoe[],    
+  caption = "Gene Sets by Highest p-value (adjusted)."
+)
+
+
+
+### 6.5, Fischer test, FDR
+library(dplyr)
+library(rlang)
+library(purrr)
+library(stringr)
+library(tidyverse)
+library(tidyselect)
+library(base)
+
+install.packages(sgof)
+library(sgof)
+
+ttest_wBH<-read.csv("/projectnb/bf528/users/hedgehog/project_1/noise_filtering/clustered_ttests.csv")
+ttest_wBx<-AnnotationDbi::select(hgu133plus2.db, keys = ttest_wBH$probeID, columns = ("SYMBOL"),)
+head(ttest_wBx)
+##adding in gene symbols
+ttest_Wgene <- left_join(ttest_wBH, ttest_wBx, by=c("probeID"="PROBEID"))
+
+
+
+#######
+####Creating FDR analysis
+ttest_wBHx<-format(ttest_Wgene, digits = 3, nsmall= 20, exp(30), scientific = TRUE)
+ttest_wBHx$FDR<-p.adjust(ttest_Wgene$p_valu, method = "BH")
+
+FDRn10<-head(ttest_wBHx,10)%>%arrange(FDR)
+FDRn10
+FDRn3<-head(ttest_wBHx,3)%>%arrange(FDR)
+FDRn3
+summary(FDRn3)
+
+
+knitr::kable(
+  FDRn3[],    
+  caption = "Top 3 Gene Sets (with BH-FDR) Analysis."
+)
+
+##Differential Expression
+total_expression<-ttest_wBHx$FDR
+length(total_expression)
+
+
+
+###Of the gene set examined, we realise that 1332 are differentially expressed and 337 are not.
+diff_exp<-ttest_wBHx$FDR<0.05
+enriched_gene<-ttest_wBHx$p_adju<0.05
+summary(diff_exp)
+summary(enriched_gene)
+##Fisher Test
+fisher.test(matrix(c(X?x),nrow=XX))
+
+
+
+##Creating a contingency Table
+
+get_contingency_table <- function (gene_set, diff_genes, non_diff_genes) {
+  # Number of differentially expressed genes and non-differentially expressed genes
+  num_diff_genes <-
+    num_non_diff_genes <-
+    # genes in the given gene set and differentially expressed and length
+    diff_genes_in_gs <-
+    num_dg_in_gs <-
+    # genes in the given gene set and not differentially expressed and length
+    non_diff_genes_in_gs <-
+    num_ndg_in_gs <-
+    # create a contingency table
+    contingency_table <- c()
+  return (contingency_table)
+}
