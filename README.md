@@ -14,5 +14,5 @@ Bettenia Cole - Biologist
 
 # Repository Contents
 
-R scripts presently make references to CSV files available on Boston University's Shared Compute Cluster. Our results can be replicated by using these scripts with the same microarray data we sourced, as described in our _Data_ section.
+R scripts presently make references to CSV files available on Boston University's Shared Compute Cluster. Our results can be replicated by using these scripts with the same microarray data we sourced, as described in our _Data_ section. The full report are available here as both `.docx` and `.pdf` files.
 
