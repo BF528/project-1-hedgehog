@@ -5,8 +5,11 @@ We sought to reanalyze Marisa et al.'s "Microarray based Tumor Classification" i
 # Contributors
 
 Data curator - Saket Pandit
+
 Programmer - Mackenzie Knox
-Taylor Falk - data analyst
+
+Data analyst - Taylor Falk
+
 Bettenia Cole - Biologist
 
 # Repository Contents
